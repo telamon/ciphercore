@@ -1,0 +1,20 @@
+{
+  "name": "hypercore-secure",
+  "version": "1.0.0",
+  "description": "Hypercore that transparently provides coldstorage encryption and blind replication",
+  "main": "index.js",
+  "scripts": {
+    "test": "tape test.js",
+    "debug": "node inspect $(npm bin)/tape test.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "codecs": "^2.0.0",
+    "debug": "^4.1.1",
+    "hypercore": "^7.0.0",
+    "hypercore-crypto": "^1.0.0",
+    "random-access-memory": "^3.1.1",
+    "tape": "^4.10.1"
+  }
+}
