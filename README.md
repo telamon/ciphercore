@@ -1,4 +1,5 @@
-# hypercore-secure (EXPERIMENTAL)
+# hypercore-secure 
+(Work in progress..)
 hypercore compatible wrapper that provides transparent content encryption
 
 ```js
