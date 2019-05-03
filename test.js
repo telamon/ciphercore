@@ -99,3 +99,29 @@ test("Blind replication", (t) => {
     })
   })
 })
+
+// TOOD: Make it pass.
+test.skip('Content-secret persistence', (t) => {
+  t.plan(100)
+  const feed = hypercrypt(ramProxy('saveTest'), {valueEncoding: 'utf8'})
+  feed.ready(() => {
+    feed.append('Hello', (err) => {
+      t.error(err)
+      const secretKey = feed.secretKey
+      const publicKey = feed.internal.key
+      const contentKey = feed.contentSecret
+
+      const persisted = hypercrypt(ramProxy('saveTest'), {valueEncoding: 'utf8'})
+      persisted.ready(()=> {
+        t.equal(secretKey.toString('hex'), persisted.secretKey.toString('hex'), 'signing secret loaded successfully')
+        t.equal(publicKey.toString('hex'), persisted.internal.key.toString('hex'), 'replication secret loaded successfully')
+        t.equal(contentKey.toString('hex'), persisted.contentSecret.toString('hex'), 'content secret loaded successfully')
+        persisted.get(0, (err, entry) => {
+          t.error(err)
+          t.equal(entry, 'Hello')
+          t.end()
+        })
+      })
+    })
+  })
+})

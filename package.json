@@ -14,6 +14,7 @@
     "debug": "^4.1.1",
     "hypercore": "^7.0.0",
     "hypercore-crypto": "^1.0.0",
+    "random-access-file": "^2.1.1",
     "sodium-universal": "^2.0.0"
   },
   "devDependencies": {

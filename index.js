@@ -4,9 +4,11 @@ const sodium = require('sodium-universal')
 const debug = require('debug')('hypercrypt')
 const codecs = require('codecs')
 const assert = require('assert')
+const raf = require('random-access-file')
+const path = require('path')
 
 const PUBKEY_SZ = 32 // size of hypercore public keys
-
+const CONTENT_SECRET_FILE = 'content_secret'
 module.exports = function (storage, key, opts) {
   if (typeof key === 'string') key = Buffer.from(key, 'hex')
   if (!Buffer.isBuffer(key) && !opts) {
@@ -16,8 +18,15 @@ module.exports = function (storage, key, opts) {
   let secretKey = null
   let contentSecret = null
 
+  if (typeof storage === 'string') {
+    const rootPath = storage
+    createStorage = (p) => {
+      return raf(path.join(rootPath, p))
+    }
+  }
+  if (typeof storage !== 'function') throw new Error('Storage should be a function or string')
+
   // TODO: check storage for keys before trying to initialize.
-  // secretKey might not be available
 
   // If pubkey is available try to extract contentKey
   if (key) {
@@ -163,7 +172,7 @@ function makeReadKey(pubKey, secret) {
 module.exports.makeReadKey = makeReadKey
 
 function parseReadKey(readKey) {
-  if (readKey.length == PUBKEY_SZ) return [readKey] // No secret available
+  if (readKey.length <= PUBKEY_SZ) return [readKey] // No secret available
 
   const pubKey = readKey.slice(0, PUBKEY_SZ)
   const secret = readKey.slice(PUBKEY_SZ)
