@@ -8,7 +8,8 @@ const raf = require('random-access-file')
 const path = require('path')
 
 const PUBKEY_SZ = 32 // size of hypercore public keys
-const CONTENT_SECRET_FILE = 'content_secret'
+const CONTENT_SECRET_PATH = 'content_secret'
+
 module.exports = function (storage, key, opts) {
   if (typeof key === 'string') key = Buffer.from(key, 'hex')
   if (!Buffer.isBuffer(key) && !opts) {
@@ -37,19 +38,43 @@ module.exports = function (storage, key, opts) {
     contentSecret = r[1]
   }
 
-  // TODO: Handle scenario publickey is available -> Become a blind feed
-  // TODO: Handle scenario publickey + contentSecret -> Become a readable feed
-  // TODO: Handle scenario publickey + contentSecret + secretKey -> become writer
-  // TODO: Handle scenario secretKey + contentSecret -> extract pubKey from secretKey become writer
-  //                                                    hypercore(storage,null {secretKey: ...}) Supported???
-  // TODO: Handle scenario secretKey + publicKey    -> intresting... Throw errors for now. (evil laughter)
+  // Modes of operation
+  // | secretKey | publicKey | contentSecret | Mode of operation                    |
+  // |-----------+-----------+---------------+--------------------------------------|
+  // | have      | have      | have          | Writer                               |
+  // | have      | extract   | have          |                                      |
+  // |-----------+-----------+---------------+--------------------------------------|
+  // | have      | have      | n/a           | Faulty writer (throw) theoretically  |
+  // | have      | extract   | n/a           | you can write unencrypted entries... |
+  // |-----------+-----------+---------------+--------------------------------------|
+  // | n/a       | have      | n/a           | Replicator (return hypercore())      |
+  // |-----------+-----------+---------------+--------------------------------------|
+  // | n/a       | have      | have          | Reader                               |
+  // |-----------+-----------+---------------+--------------------------------------|
+  // | n/a       | n/a       | n/a           | Generate new feed & new keys         |
+  // |-----------+-----------+---------------+--------------------------------------|
+  // | n/a       | n/a       | opts          | Generate new feed use provided       |
+  // |           |           |               | contentSecret for encryption         |
+  // |-----------+-----------+---------------+--------------------------------------|
+  //
+  // Note: secretKey embeds a copy of the publicKey and can be extracted
+  //
 
-  // No keys available generate all 3
-  if (!key) {
+  if (!key && secretKey) {
+    // TODO: Sodium extract pubkey from signing pair
+  }
+
+  if (key && secretKey && !contentSecret) throw new Error("Mixing plain and encrypted feed entries is not yet supported")
+
+  // Become a blind-replicator, return a plain hypercore without encryption/decryption support.
+  if (key && !contentSecret) return hypercore(storage, key, opts)
+
+  // Generate new keypair
+  if (!key && !secretKey) {
     let pair = crypto.keyPair()
     key =  pair.publicKey // A.k.a (blind) replication key
     secretKey = pair.secretKey // Signing key
-    contentSecret = crypto.randomBytes(16) // Read-access
+    contentSecret = opts.contentSecret || crypto.randomBytes(16) // Read-access
     // TODO: persist contentSecret to storage
     debug(`Initialized new feed`)
   }
@@ -180,3 +205,7 @@ function parseReadKey(readKey) {
 }
 module.exports.parseReadKey = parseReadKey
 
+// expose the path constant for easy random-access divertion
+// for those who would like to store their encryption secrets separately
+// from the core.
+module.exports.CONTENT_SECRET_PATH = CONTENT_SECRET_PATH

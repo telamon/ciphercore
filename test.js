@@ -55,6 +55,7 @@ test("Blind replication", (t) => {
   feed.ready(() => {
 
     // Initialize blind replicate feed by providing it `feed.blindKey` and using plain `hypercore` instance
+    // Note: calling hypercrypt with only a blind-key will cause a regular hypercore instance to be returned.
     const blindFeed = hypercore(ramProxy('blind'), feed.blindKey, {valueEncoding: 'utf8'})
     blindFeed.ready(() => {
 
