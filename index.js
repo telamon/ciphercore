@@ -5,6 +5,8 @@ const debug = require('debug')('hypercrypt')
 const codecs = require('codecs')
 const assert = require('assert')
 
+const PUBKEY_SZ = 32 // size of hypercore public keys
+
 module.exports = function (storage, key, opts) {
   if (typeof key === 'string') key = Buffer.from(key, 'hex')
   if (!Buffer.isBuffer(key) && !opts) {
@@ -18,9 +20,12 @@ module.exports = function (storage, key, opts) {
   // secretKey might not be available
 
   // If pubkey is available try to extract contentKey
-  if (typeof key === 'string' && !contentSecret) {
-    debugger
-    [key, contentSecret] = parseKeys(key)
+  if (key) {
+    if (typeof key === 'string') key = new Buffer(key,'hex')
+    // [key, contentSecret] = parseReadKey(key) // TODO: fancy destructuring dosen't work for some reason..
+    const r = parseReadKey(key)
+    key = r[0]
+    contentSecret = r[1]
   }
 
   // TODO: Handle scenario publickey is available -> Become a blind feed
@@ -108,8 +113,8 @@ module.exports = function (storage, key, opts) {
   debug(`- New feed instance ---\n` +
     `blindReplKey: \t${key.toString('hex').substr(0,8)}\n` +
     `discoveryKey: \t${feed.discoveryKey.toString('hex').substr(0,8)}\n` +
-    `writingKey: \t${secretKey.toString('hex').substr(0,8)}\n` +
-    `readKey: \t\t${concatToReadKey(key, contentSecret).substr(0,8)}\n` +
+    `writingKey: \t\t${secretKey && secretKey.toString('hex').substr(0,8)}\n` +
+    `readKey: \t\t${makeReadKey(key, contentSecret).toString('hex').substr(0,8)}\n` +
     `contentSecret: \t${contentSecret.toString('hex').substr(0,8)}\n` +
     `encryptionKey: \t${hashEncryptionKey(key, contentSecret).toString('hex').substr(0,8)}\n`)
 
@@ -120,13 +125,16 @@ module.exports = function (storage, key, opts) {
         case 'internal':
           return feed
         case 'key':
-          return concatToReadKey(key, contentSecret)
+          return makeReadKey(key, contentSecret)
         case 'blindKey':
           return feed.key
 
         // Proxy all poperty gets to original feed as default
         default:
-          return target[prop]
+          if (typeof target[prop] === 'function')
+            return target[prop].bind(target)
+          else
+            return target[prop]
       }
     }
   })
@@ -136,7 +144,7 @@ function hashEncryptionKey (pubKey, secret) {
   const len = 2048 // TODO: Not sure about this number
   const key = Buffer.alloc(len)
   sodium.crypto_pwhash(
-    key,
+   key,
     Buffer.from(secret),
     pubKey,
     8,
@@ -146,11 +154,20 @@ function hashEncryptionKey (pubKey, secret) {
   return key
 }
 
-function concatToReadKey(pubKey, secret) {
-  return `${pubKey.toString('hex')}H${secret.toString('hex')}`
+function makeReadKey(pubKey, secret) {
+  const readKey = Buffer.alloc(PUBKEY_SZ + secret.length)
+  pubKey.copy(readKey)
+  secret.copy(readKey, PUBKEY_SZ)
+  return readKey
 }
+module.exports.makeReadKey = makeReadKey
 
-function parseKeys(str) {
-  return str.split(/[^0-9A-F]/i)
+function parseReadKey(readKey) {
+  if (readKey.length == PUBKEY_SZ) return [readKey] // No secret available
+
+  const pubKey = readKey.slice(0, PUBKEY_SZ)
+  const secret = readKey.slice(PUBKEY_SZ)
+  return [pubKey, secret]
 }
+module.exports.parseReadKey = parseReadKey
 

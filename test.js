@@ -3,6 +3,7 @@ const RAM = require('random-access-memory')
 const hypercrypt = require('.')
 const hypercore = require('hypercore')
 const codecs = require('codecs')
+const pump = require('pump')
 
 function ramProxy(prefix) {
   return (path) => {
@@ -48,46 +49,51 @@ test("Transparent encryption", (t) => {
 })
 
 test("Blind replication", (t) => {
-  t.plan(22)
+  t.plan(12)
   // Create a new encrypted feed
   const feed = hypercrypt(ramProxy('author'), {valueEncoding: 'utf8'})
   feed.ready(() => {
 
-    // Initialize blind replicate feed
+    // Initialize blind replicate feed by providing it `feed.blindKey` and using plain `hypercore` instance
     const blindFeed = hypercore(ramProxy('blind'), feed.blindKey, {valueEncoding: 'utf8'})
     blindFeed.ready(() => {
 
       // Initialize the trusted feed that will be able to read and replicate.
-      const friendlyFeed = hypercore(ramProxy('trusted'), feed.id, {valueEncoding: 'utf8'})
+      const friendlyFeed = hypercrypt(ramProxy('trusted'), feed.key, {valueEncoding: 'utf8'})
 
       friendlyFeed.ready(() => {
         // Discovery keys should be the same regardless of read/write/replicate access.
         t.equal(feed.discoveryKey.toString('hex'), blindFeed.discoveryKey.toString('hex'), 'Discovery key should be universal #1')
-        debugger
         t.equal(feed.discoveryKey.toString('hex'), friendlyFeed.discoveryKey.toString('hex'), 'Discovery key should be universal #2')
 
-        const testMessage = 'hello hyperverse'
+        t.equal(feed.key.toString('hex'), friendlyFeed.key.toString('hex'), 'Read key should have been nicely parsed and loaded')
 
+        // Same goes for the regular public keys used by hypercore-protocol for transport encryption
+        t.equal(feed.internal.key.toString('hex'), blindFeed.key.toString('hex'), 'Replication key should be universal #1')
+        t.equal(feed.internal.key.toString('hex'), friendlyFeed.internal.key.toString('hex'), 'Replication key should be universal #2')
+
+        const testMessage = 'hello hyperverse'
+        // Test replication using Author -> BlindRepl -> Friend
         feed.append(testMessage, (err) => {
           t.error(err)
           const s = feed.replicate()
-          s.pipe(blindFeed.replicate()).pipe(s)
-            .done((err) => {
-              blindFeed.get(0, (err, entry) => {
+          pump(s, blindFeed.replicate(), s, (err) => {
+            t.error(err)
+            blindFeed.get(0, (err, entry) => {
+              t.error(err)
+              t.notEqual(entry, testMessage, 'Blind replicator sees encrypted data')
+
+              const s = blindFeed.replicate()
+              pump(s, friendlyFeed.replicate(), s, (err) => {
                 t.error(err)
-                t.notEqual(entry, testMessage)
-                t.error(err)
-                const s = blindFeed.replicate()
-                s.pipe(friendlyFeed.replicate()).pipe(s)
-                  .done((err) => {
-                    t.error(err)
-                    friendlyFeed.get(0, (err, entry) => {
-                      t.error(err)
-                      t.equal(entry, testMessage)
-                    })
-                  })
+                friendlyFeed.get(0, (err, entry) => {
+                  t.error(err)
+                  t.equal(entry, testMessage, 'Friendly feed sees derypted data')
+                  t.end()
+                })
               })
             })
+          })
         })
       })
     })

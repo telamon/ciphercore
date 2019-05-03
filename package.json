@@ -7,14 +7,18 @@
     "test": "tape test.js",
     "debug": "node inspect $(npm bin)/tape test.js"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Tony Ivanov (info@tonyivanov.se)",
+  "license": "AGPL-3.0-or-later",
   "dependencies": {
     "codecs": "^2.0.0",
     "debug": "^4.1.1",
     "hypercore": "^7.0.0",
     "hypercore-crypto": "^1.0.0",
+    "sodium-universal": "^2.0.0"
+  },
+  "devDependencies": {
     "random-access-memory": "^3.1.1",
-    "tape": "^4.10.1"
+    "tape": "^4.10.1",
+    "pump": "^3.0.0"
   }
 }
