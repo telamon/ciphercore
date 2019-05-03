@@ -1,10 +1,10 @@
-# hypercore-secure
-(Experimental) hypercore compatible wrapper that provides transparent content encryption
+# hypercore-secure (EXPERIMENTAL)
+hypercore compatible wrapper that provides transparent content encryption
 
 ```js
 
 var hypercrypt = require('hypercore-secure')
-var feed = hypercore('./my-first-dataset', {valueEncoding: 'utf-8'})
+var feed = hypercrypt('./my-first-dataset', {valueEncoding: 'utf-8'})
 
 feed.append('hello') // identical API to hypercore
 
