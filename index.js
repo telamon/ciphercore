@@ -1,7 +1,7 @@
 const hypercore = require('hypercore')
 const crypto = require('hypercore-crypto')
 const sodium = require('sodium-universal')
-const debug = require('debug')('hypercrypt')
+const debug = require('debug')('ciphercore')
 const codecs = require('codecs')
 const assert = require('assert')
 const raf = require('random-access-file')
@@ -11,11 +11,11 @@ const PUBKEY_SZ = 32 // size of hypercore public keys
 const CONTENT_SECRET_PATH = 'content_secret'
 
 module.exports = function (storage, key, opts) {
-  if (typeof key === 'string') key = Buffer.from(key, 'hex')
   if (!Buffer.isBuffer(key) && !opts) {
     opts = key
     key = null
   }
+
   let secretKey = null
   let contentSecret = null
 
@@ -31,14 +31,15 @@ module.exports = function (storage, key, opts) {
 
   // If pubkey is available try to extract contentKey
   if (key) {
-    if (typeof key === 'string') key = new Buffer(key,'hex')
+    if (typeof key === 'string') key = new Buffer(key,'hex') // Assume key is a hexstring
+
     // [key, contentSecret] = parseReadKey(key) // TODO: fancy destructuring dosen't work for some reason..
     const r = parseReadKey(key)
     key = r[0]
     contentSecret = r[1]
   }
 
-  // Modes of operation
+  // |-----------+-----------+---------------+--------------------------------------|
   // | secretKey | publicKey | contentSecret | Mode of operation                    |
   // |-----------+-----------+---------------+--------------------------------------|
   // | have      | have      | have          | Writer                               |
@@ -134,6 +135,7 @@ module.exports = function (storage, key, opts) {
         encryptionKey
       )
       assert.equal(n, messageLen, `Decryption error, expected decrypted bytes (${n}) to equal expected message length (${messageLen}).`)
+
       // Run originally provided encoder if any
       if (originalEncoder && typeof originalEncoder.decode === 'function') {
         return originalEncoder.decode(message, start, end)
@@ -205,7 +207,7 @@ function parseReadKey(readKey) {
 }
 module.exports.parseReadKey = parseReadKey
 
-// expose the path constant for easy random-access divertion
+// expose the path constant for easier random-access diversion
 // for those who would like to store their encryption secrets separately
 // from the core.
 module.exports.CONTENT_SECRET_PATH = CONTENT_SECRET_PATH

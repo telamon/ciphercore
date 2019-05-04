@@ -1,6 +1,6 @@
 const test = require('tape')
 const RAM = require('random-access-memory')
-const hypercrypt = require('.')
+const ciphercore = require('.')
 const hypercore = require('hypercore')
 const codecs = require('codecs')
 const pump = require('pump')
@@ -13,7 +13,7 @@ function ramProxy(prefix) {
 
 test("Transparent encryption", (t) => {
   t.plan(10)
-  const feed = hypercrypt(RAM, {valueEncoding: 'utf8'})
+  const feed = ciphercore(RAM, {valueEncoding: 'utf8'})
   t.ok(feed.key.length > 32, 'should expose the read-key')
   t.ok(feed.blindKey, 'should expose a new key to use for blind-replication')
   t.ok(feed.internal, 'should expose internal feed')
@@ -51,16 +51,16 @@ test("Transparent encryption", (t) => {
 test("Blind replication", (t) => {
   t.plan(12)
   // Create a new encrypted feed
-  const feed = hypercrypt(ramProxy('author'), {valueEncoding: 'utf8'})
+  const feed = ciphercore(ramProxy('author'), {valueEncoding: 'utf8'})
   feed.ready(() => {
 
     // Initialize blind replicate feed by providing it `feed.blindKey` and using plain `hypercore` instance
-    // Note: calling hypercrypt with only a blind-key will cause a regular hypercore instance to be returned.
+    // Note: calling ciphercore with only a blind-key will cause a regular hypercore instance to be returned.
     const blindFeed = hypercore(ramProxy('blind'), feed.blindKey, {valueEncoding: 'utf8'})
     blindFeed.ready(() => {
 
       // Initialize the trusted feed that will be able to read and replicate.
-      const friendlyFeed = hypercrypt(ramProxy('trusted'), feed.key, {valueEncoding: 'utf8'})
+      const friendlyFeed = ciphercore(ramProxy('trusted'), feed.key, {valueEncoding: 'utf8'})
 
       friendlyFeed.ready(() => {
         // Discovery keys should be the same regardless of read/write/replicate access.
@@ -104,7 +104,7 @@ test("Blind replication", (t) => {
 // TOOD: Make it pass.
 test.skip('Content-secret persistence', (t) => {
   t.plan(100)
-  const feed = hypercrypt(ramProxy('saveTest'), {valueEncoding: 'utf8'})
+  const feed = ciphercore(ramProxy('saveTest'), {valueEncoding: 'utf8'})
   feed.ready(() => {
     feed.append('Hello', (err) => {
       t.error(err)
@@ -112,7 +112,7 @@ test.skip('Content-secret persistence', (t) => {
       const publicKey = feed.internal.key
       const contentKey = feed.contentSecret
 
-      const persisted = hypercrypt(ramProxy('saveTest'), {valueEncoding: 'utf8'})
+      const persisted = ciphercore(ramProxy('saveTest'), {valueEncoding: 'utf8'})
       persisted.ready(()=> {
         t.equal(secretKey.toString('hex'), persisted.secretKey.toString('hex'), 'signing secret loaded successfully')
         t.equal(publicKey.toString('hex'), persisted.internal.key.toString('hex'), 'replication secret loaded successfully')
