@@ -101,8 +101,7 @@ test("Blind replication", (t) => {
   })
 })
 
-// TOOD: Make it pass.
-test.skip('Content-secret persistence', (t) => {
+test.only('Content-secret persistence', (t) => {
   t.plan(100)
   const feed = ciphercore(ramProxy('saveTest'), {valueEncoding: 'utf8'})
   feed.ready(() => {

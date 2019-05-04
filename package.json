@@ -1,7 +1,7 @@
 {
-  "name": "hypercore-secure",
+  "name": "ciphercore",
   "version": "1.0.0",
-  "description": "Hypercore that transparently provides coldstorage encryption and blind replication",
+  "description": "A hypercore that transparently provides coldstorage encryption and blind replication",
   "main": "index.js",
   "scripts": {
     "test": "tape test.js",
