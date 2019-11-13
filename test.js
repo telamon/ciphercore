@@ -4,6 +4,7 @@ const ciphercore = require('.')
 const hypercore = require('hypercore')
 const codecs = require('codecs')
 const pump = require('pump')
+const sodium = require('sodium-universal')
 
 function ramProxy(prefix) {
   return (path) => {
@@ -11,7 +12,29 @@ function ramProxy(prefix) {
   }
 }
 
-test("Transparent encryption", (t) => {
+test.only("appendPrivate()", (t) => {
+  t.plan(99)
+  const key = Buffer.alloc(32)
+  sodium.randombytes_buf(key)
+
+  const feed = ciphercore(RAM, {valueEncoding: 'utf8'})
+
+  feed.ready(() => {
+    feed.appendEncrypted(key, "hello", err => {
+      t.error(err)
+      feed.get(0, (err, entry) => {
+        t.error(err)
+        t.notEqual(entry, "hello", 'Should encrypt entries')
+        feed.getEncrypted(0, key, (err, entry) => {
+          t.error(err)
+          t.equal(entry, "hello", 'Should decrypt entries')
+        })
+      })
+    })
+  })
+})
+
+test.skip("Transparent encryption with key juggling - [SUPPORT REMOVED]", (t) => {
   t.plan(10)
   const feed = ciphercore(RAM, {valueEncoding: 'utf8'})
   t.ok(feed.key.length > 32, 'should expose the read-key')
@@ -48,7 +71,7 @@ test("Transparent encryption", (t) => {
   })
 })
 
-test("Blind replication", (t) => {
+test.skip("Blind replication", (t) => {
   t.plan(12)
   // Create a new encrypted feed
   const feed = ciphercore(ramProxy('author'), {valueEncoding: 'utf8'})
@@ -101,7 +124,7 @@ test("Blind replication", (t) => {
   })
 })
 
-test.only('Content-secret persistence', (t) => {
+test.skip('Content-secret persistence', (t) => {
   t.plan(100)
   const feed = ciphercore(ramProxy('saveTest'), {valueEncoding: 'utf8'})
   feed.ready(() => {

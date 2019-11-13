@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "tape test.js",
+    "lint": "standard",
     "debug": "node inspect $(npm bin)/tape test.js"
   },
   "author": "Tony Ivanov (info@tonyivanov.se)",
@@ -12,14 +13,16 @@
   "dependencies": {
     "codecs": "^2.0.0",
     "debug": "^4.1.1",
-    "hypercore": "^7.0.0",
+    "hypercore": "^8.3.0",
     "hypercore-crypto": "^1.0.0",
     "random-access-file": "^2.1.1",
     "sodium-universal": "^2.0.0"
   },
   "devDependencies": {
+    "pump": "^3.0.0",
     "random-access-memory": "^3.1.1",
-    "tape": "^4.10.1",
-    "pump": "^3.0.0"
-  }
+    "standard": "^14.3.1",
+    "tape": "^4.10.1"
+  },
+  "repository": "git@github.com:telamon/ciphercore.git"
 }
