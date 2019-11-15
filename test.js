@@ -1,51 +1,52 @@
 const test = require('tape')
+const sodium = require('sodium-universal')
 const RAM = require('random-access-memory')
 const ciphercore = require('.')
 const hypercore = require('hypercore')
 const codecs = require('codecs')
 const pump = require('pump')
-const sodium = require('sodium-universal')
 
-function ramProxy(prefix) {
+function ramProxy (prefix) {
   return (path) => {
     return RAM(prefix + '/' + path)
   }
 }
 
-test.only("appendPrivate()", (t) => {
+test.skip('appendPrivate()', (t) => {
   t.plan(99)
   const key = Buffer.alloc(32)
   sodium.randombytes_buf(key)
 
-  const feed = ciphercore(RAM, {valueEncoding: 'utf8'})
+  const feed = ciphercore(RAM, { valueEncoding: 'utf8' })
 
   feed.ready(() => {
-    feed.appendEncrypted(key, "hello", err => {
+    feed.appendEncrypted(key, 'hello', err => {
       t.error(err)
       feed.get(0, (err, entry) => {
         t.error(err)
-        t.notEqual(entry, "hello", 'Should encrypt entries')
+        t.notEqual(entry, 'hello', 'Should encrypt entries')
         feed.getEncrypted(0, key, (err, entry) => {
           t.error(err)
-          t.equal(entry, "hello", 'Should decrypt entries')
+          t.equal(entry, 'hello', 'Should decrypt entries')
         })
       })
     })
   })
 })
 
-test.skip("Transparent encryption with key juggling - [SUPPORT REMOVED]", (t) => {
+test('Transparent encryption using key substitution', (t) => {
   t.plan(10)
-  const feed = ciphercore(RAM, {valueEncoding: 'utf8'})
-  t.ok(feed.key.length > 32, 'should expose the read-key')
-  t.ok(feed.blindKey, 'should expose a new key to use for blind-replication')
-  t.ok(feed.internal, 'should expose internal feed')
+  const feed = ciphercore(RAM, { valueEncoding: 'utf8' })
   feed.ready(() => {
-    t.notEqual(feed.key.toString('hex'), feed.blindKey.toString('hex'), "Blind and public key should differ")
+    debugger
+    t.ok(feed.key.length > 32, 'should expose the read-key')
+    t.ok(feed.blindKey, 'should expose a new key to use for blind-replication')
+    t.ok(feed.internal, 'should expose internal feed')
+    t.notEqual(feed.key.toString('hex'), feed.blindKey.toString('hex'), 'Blind and public key should differ')
     t.equal(feed.blindKey.toString('hex'), feed.internal.key.toString('hex'),
       'Internal feed should only be aware of the blind replication-key')
 
-    const testData  = 'Bobby was a shy little sheep'
+    const testData = 'Bobby was a shy little sheep'
 
     // Append some data
     feed.append(testData, (err) => {
@@ -71,19 +72,17 @@ test.skip("Transparent encryption with key juggling - [SUPPORT REMOVED]", (t) =>
   })
 })
 
-test.skip("Blind replication", (t) => {
+test('Blind replication', (t) => {
   t.plan(12)
   // Create a new encrypted feed
-  const feed = ciphercore(ramProxy('author'), {valueEncoding: 'utf8'})
+  const feed = ciphercore(ramProxy('author'), { valueEncoding: 'utf8' })
   feed.ready(() => {
-
     // Initialize blind replicate feed by providing it `feed.blindKey` and using plain `hypercore` instance
     // Note: calling ciphercore with only a blind-key will cause a regular hypercore instance to be returned.
-    const blindFeed = hypercore(ramProxy('blind'), feed.blindKey, {valueEncoding: 'utf8'})
+    const blindFeed = hypercore(ramProxy('blind'), feed.blindKey, { valueEncoding: 'utf8' })
     blindFeed.ready(() => {
-
       // Initialize the trusted feed that will be able to read and replicate.
-      const friendlyFeed = ciphercore(ramProxy('trusted'), feed.key, {valueEncoding: 'utf8'})
+      const friendlyFeed = ciphercore(ramProxy('trusted'), feed.key, { valueEncoding: 'utf8' })
 
       friendlyFeed.ready(() => {
         // Discovery keys should be the same regardless of read/write/replicate access.
@@ -126,7 +125,7 @@ test.skip("Blind replication", (t) => {
 
 test.skip('Content-secret persistence', (t) => {
   t.plan(100)
-  const feed = ciphercore(ramProxy('saveTest'), {valueEncoding: 'utf8'})
+  const feed = ciphercore(ramProxy('saveTest'), { valueEncoding: 'utf8' })
   feed.ready(() => {
     feed.append('Hello', (err) => {
       t.error(err)
@@ -134,8 +133,8 @@ test.skip('Content-secret persistence', (t) => {
       const publicKey = feed.internal.key
       const contentKey = feed.contentSecret
 
-      const persisted = ciphercore(ramProxy('saveTest'), {valueEncoding: 'utf8'})
-      persisted.ready(()=> {
+      const persisted = ciphercore(ramProxy('saveTest'), { valueEncoding: 'utf8' })
+      persisted.ready(() => {
         t.equal(secretKey.toString('hex'), persisted.secretKey.toString('hex'), 'signing secret loaded successfully')
         t.equal(publicKey.toString('hex'), persisted.internal.key.toString('hex'), 'replication secret loaded successfully')
         t.equal(contentKey.toString('hex'), persisted.contentSecret.toString('hex'), 'content secret loaded successfully')

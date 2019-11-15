@@ -9,7 +9,7 @@
     "debug": "node inspect $(npm bin)/tape test.js"
   },
   "author": "Tony Ivanov (info@tonyivanov.se)",
-  "license": "AGPL-3.0-or-later",
+  "license": "LGPL-3.0-or-later",
   "dependencies": {
     "codecs": "^2.0.0",
     "debug": "^4.1.1",
