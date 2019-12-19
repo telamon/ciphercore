@@ -1,5 +1,7 @@
 # ciphercore
-(Work in progress..)
+> (Work in progress..)
+> if you just want to encrypt content and don't care about the API design that is currently blocked,
+> then take a look at [crypto-encoder](https://github.com/telamon/crypto-encoder)
 
 ciphercore is a [proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) factory
 that extends [hypercore](https://github.com/mafintosh/hypercore) with the
